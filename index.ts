@@ -1,6 +1,10 @@
 import express from 'express';
-import { AdminRoute, VendorRoute } from "./routes";
+import dotenv from "dotenv";
 import bodyParser from 'body-parser';
+import { connectDB } from './config';
+import { AdminRoute, VendorRoute } from "./routes";
+
+dotenv.config();
 
 const app = express();
 
@@ -10,7 +14,10 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use("/admin", AdminRoute);
 app.use("/vendor", VendorRoute);
 
-app.listen(8000, () => {
+connectDB();
+
+const port = process.env.PORT || 8000;
+app.listen(port, () => {
     console.clear();
-    console.log("App is listening to the port 8000");
-})
+    console.log("App is listening to the port", port);
+});
