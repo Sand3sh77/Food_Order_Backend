@@ -22,10 +22,9 @@ export const GeneratePassword = async ({
 
 export const ValidatePassword = async ({
     enteredPassword,
-    savedPassword,
-    salt
+    savedPassword
 }: ValidatePasswordProps) => {
-    return await GeneratePassword({ password: enteredPassword, salt }) === savedPassword;
+    return await bcrypt.compare(enteredPassword, savedPassword);
 }
 
 export const GenerateSignature = async (payload: AuthPayload) => {
@@ -38,7 +37,7 @@ export const ValidateSignature = async (req: Request) => {
 
     if (signature) {
         try {
-            const payload = await jwt.verify(signature.split(' ')[1], APP_SECRET) as AuthPayload;
+            const payload = jwt.verify(signature.split(' ')[1], APP_SECRET) as AuthPayload;
             req.user = payload;
             return true;
 

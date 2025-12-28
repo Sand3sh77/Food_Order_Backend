@@ -1,7 +1,8 @@
 import { NextFunction, Request, Response } from "express";
 import { GenerateSignature, ValidatePassword } from "../utility";
 import { FindVendor } from "./AdminController";
-import type { EditVendorInput, VendorLoginInput } from "../dto";
+import type { CreateFoodInputs, EditVendorInput, VendorLoginInput } from "../dto";
+import { Food, Vendor } from "../models";
 
 export const VendorLogin = async (req: Request, res: Response, next: NextFunction) => {
 
@@ -30,7 +31,7 @@ export const VendorLogin = async (req: Request, res: Response, next: NextFunctio
         }
     }
 
-    return res.json({ 'message': 'Login credential is not valid' })
+    return res.json({ message: "Login credential is not valid" })
 
 }
 
@@ -42,7 +43,7 @@ export const GetVendorProfile = async (req: Request, res: Response, next: NextFu
         return res.json(existingVendor);
     }
 
-    return res.json({ 'message': 'Vendor Information Not Found' })
+    return res.json({ message: "Vendor Information Not Found" })
 }
 
 export const UpdateVendorProfile = async (req: Request, res: Response, next: NextFunction) => {
@@ -68,5 +69,72 @@ export const UpdateVendorProfile = async (req: Request, res: Response, next: Nex
 
     }
     return res.json({ 'message': 'Unable to Update vendor profile ' })
-
 }
+
+export const UpdateVendorService = async (req: Request, res: Response, next: NextFunction) => {
+
+    const user = req.user;
+
+    if (user) {
+        const existingVendor = await FindVendor({ id: user._id });
+
+        if (existingVendor !== null) {
+            existingVendor.serviceAvailable = !existingVendor.serviceAvailable;
+            const saveResult = await existingVendor.save();
+
+            return res.json(saveResult);
+        }
+
+    }
+    return res.json({ message: "Unable to Update vendor profile" })
+};
+
+export const AddFood = async (req: Request, res: Response, next: NextFunction) => {
+
+    const user = req.user;
+
+    if (user) {
+        const {
+            name,
+            description,
+            category,
+            foodType,
+            price,
+            readyTime
+        } = <CreateFoodInputs>req.body;
+
+        const vendor = await FindVendor({ id: user._id });
+
+        if (vendor !== null) {
+
+            const addedFood = await Food.create({
+                vendorId: vendor._id.toString(),
+                name,
+                description,
+                category,
+                foodType,
+                price,
+                readyTime,
+            });
+
+            vendor.foods.push(addedFood._id);
+            const result = await vendor.save();
+
+            return res.json({ message: "Food added successfully", data: result });
+        }
+
+    }
+    return res.json({ message: "Unable to add food" })
+};
+
+export const GetFoods = async (req: Request, res: Response, next: NextFunction) => {
+
+    const user = req.user;
+
+    if (user) {
+        const foods = await Food.find({ vendorId: user._id });
+
+        return res.json({ message: "Food fetched succesfully", data: foods });
+    }
+    return res.json({ message: 'Unable to get food' })
+};
