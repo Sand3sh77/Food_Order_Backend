@@ -3,6 +3,7 @@ import { GenerateSignature, ValidatePassword } from "../utility";
 import { FindVendor } from "./AdminController";
 import type { CreateFoodInputs, EditVendorInput, VendorLoginInput } from "../dto";
 import { Food, Vendor } from "../models";
+import { cloudinaryUploadImage } from "../utility/cloudinary";
 
 export const VendorLogin = async (req: Request, res: Response, next: NextFunction) => {
 
@@ -93,6 +94,8 @@ export const AddFood = async (req: Request, res: Response, next: NextFunction) =
 
     const user = req.user;
 
+    console.log(req)
+
     if (user) {
         const {
             name,
@@ -100,12 +103,18 @@ export const AddFood = async (req: Request, res: Response, next: NextFunction) =
             category,
             foodType,
             price,
-            readyTime
+            readyTime,
+            images
         } = <CreateFoodInputs>req.body;
 
         const vendor = await FindVendor({ id: user._id });
 
         if (vendor !== null) {
+
+            if (images) {
+                const imageUrl = await cloudinaryUploadImage(images[0]);
+                console.log(imageUrl);
+            };
 
             const addedFood = await Food.create({
                 vendorId: vendor._id.toString(),
@@ -115,6 +124,7 @@ export const AddFood = async (req: Request, res: Response, next: NextFunction) =
                 foodType,
                 price,
                 readyTime,
+                images: []
             });
 
             vendor.foods.push(addedFood._id);
