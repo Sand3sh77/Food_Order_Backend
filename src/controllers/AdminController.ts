@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { CreateVendorInput } from '../dto';
 import { Vendor } from '../models';
-import { GeneratePassword, GenerateSalt } from '../utility';
+import { GeneratePassword, GenerateSalt, uploadToCloudinary } from '../utility';
 
 export const FindVendor = async ({ id, email }: { id?: string, email?: string }) => {
     if (email) {
@@ -33,6 +33,17 @@ export const CreateVendor = async (req: Request, res: Response, next: NextFuncti
     const salt = await GenerateSalt()
     const userPassword = await GeneratePassword({ password, salt });
 
+    const files = req.files as Express.Multer.File[];
+
+    let imageUrls: string[] = [];
+
+    if (files && files.length > 0) {
+        for (const file of files) {
+            const url = await uploadToCloudinary(file.buffer);
+            imageUrls.push(url);
+        }
+    }
+
     const createdVendor = await Vendor.create({
         name,
         address,
@@ -45,7 +56,7 @@ export const CreateVendor = async (req: Request, res: Response, next: NextFuncti
         phone,
         rating: 0,
         serviceAvailable: false,
-        coverImages: [],
+        coverImages: imageUrls,
     })
 
     return res.json({

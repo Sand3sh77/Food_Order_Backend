@@ -1,9 +1,10 @@
 import express, { Request, Response, NextFunction } from 'express';
 import { CreateVendor, GetVendorById, GetVendors } from '../controllers';
+import { upload } from '../middlewares';
 
 const router = express.Router();
 
-router.post("/vendor", CreateVendor);
+router.post("/vendor", upload.array("coverImages", 5), CreateVendor);
 router.get("/vendor", GetVendors);
 router.get("/vendor/:id", GetVendorById);
 

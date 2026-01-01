@@ -1,9 +1,12 @@
 import { NextFunction, Request, Response } from "express";
-import { GenerateSignature, ValidatePassword } from "../utility";
+import { Food } from "../models";
 import { FindVendor } from "./AdminController";
+import {
+    GenerateSignature,
+    uploadToCloudinary,
+    ValidatePassword
+} from "../utility";
 import type { CreateFoodInputs, EditVendorInput, VendorLoginInput } from "../dto";
-import { Food, Vendor } from "../models";
-import { cloudinaryUploadImage } from "../utility/cloudinary";
 
 export const VendorLogin = async (req: Request, res: Response, next: NextFunction) => {
 
@@ -16,7 +19,6 @@ export const VendorLogin = async (req: Request, res: Response, next: NextFunctio
         const validation = await ValidatePassword({
             enteredPassword: password,
             savedPassword: existingUser.password,
-            salt: existingUser.salt
         });
         if (validation) {
 
@@ -94,8 +96,6 @@ export const AddFood = async (req: Request, res: Response, next: NextFunction) =
 
     const user = req.user;
 
-    console.log(req)
-
     if (user) {
         const {
             name,
@@ -103,19 +103,24 @@ export const AddFood = async (req: Request, res: Response, next: NextFunction) =
             category,
             foodType,
             price,
-            readyTime,
-            images
+            readyTime
         } = <CreateFoodInputs>req.body;
 
         const vendor = await FindVendor({ id: user._id });
 
         if (vendor !== null) {
 
-            if (images) {
-                const imageUrl = await cloudinaryUploadImage(images[0]);
-                console.log(imageUrl);
-            };
+            const files = req.files as Express.Multer.File[];
 
+            let imageUrls: string[] = [];
+
+            if (files && files.length > 0) {
+                for (const file of files) {
+                    const url = await uploadToCloudinary(file.buffer);
+                    imageUrls.push(url);
+                }
+            }
+            
             const addedFood = await Food.create({
                 vendorId: vendor._id.toString(),
                 name,
@@ -124,7 +129,7 @@ export const AddFood = async (req: Request, res: Response, next: NextFunction) =
                 foodType,
                 price,
                 readyTime,
-                images: []
+                images: imageUrls
             });
 
             vendor.foods.push(addedFood._id);
